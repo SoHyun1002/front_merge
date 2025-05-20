@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../style/admin/AdminUsers.css';
-import { API } from '../../api/api';
+import api from "../../api/api.js";
 
 function AdminUsers() {
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     // 모달 상태 관리
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -19,7 +21,7 @@ function AdminUsers() {
         uName: '',
         uEmail: '',
         uPassword: '',
-        uRole: 'ADMIN'
+        uRole: 'USER'
     });
 
     // 검색 상태
@@ -28,17 +30,28 @@ function AdminUsers() {
     const [searchEmail, setSearchEmail] = useState('');
 
     const fetchUsers = async (page = 0, uid = searchUid, name = searchName, email = searchEmail) => {
+        setLoading(true);
+        setError(null);
         try {
             const token = localStorage.getItem('accessToken');
             if (!token) {
                 throw new Error('로그인이 필요합니다.');
             }
-            
-            const res = await API.admin.getUsers(page, 10, uid, name, email);
+            const params = new URLSearchParams();
+            params.append('page', page);
+            params.append('size', 10);
+            if (uid) params.append('uId', uid);
+            if (name) params.append('uName', name);
+            if (email) params.append('uEmail', email);
+            const res = await api.get(`/api/admin/users?${params.toString()}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setUsers(Array.isArray(res.data.users) ? res.data.users : []);
             setTotalPages(res.data.totalPages);
         } catch (err) {
             handleError(err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -47,23 +60,27 @@ function AdminUsers() {
         if (err.response) {
             if (err.response.status === 401) {
                 localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
                 navigate('/login', { state: { message: '세션이 만료되었습니다. 다시 로그인해주세요.' } });
             } else {
-                alert(`서버 오류: ${err.response.data.message || '알 수 없는 오류가 발생했습니다.'}`);
+                setError(`서버 오류: ${err.response.data.message || '알 수 없는 오류가 발생했습니다.'}`);
             }
         } else if (err.request) {
-            alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
+            setError('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
         } else {
-            alert(err.message || '사용자 목록을 불러오지 못했습니다.');
+            setError(err.message || '사용자 목록을 불러오지 못했습니다.');
         }
     };
 
     const handleCreateUser = async (e) => {
         e.preventDefault();
         try {
-            await API.admin.createUser(formData);
+            const token = localStorage.getItem('accessToken');
+            await api.post('/api/admin/users', formData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setShowCreateModal(false);
-            setFormData({ uName: '', uEmail: '', uPassword: '', uRole: 'ADMIN' });
+            setFormData({ uName: '', uEmail: '', uPassword: '', uRole: 'USER' });
             fetchUsers(page);
             alert('사용자가 성공적으로 생성되었습니다.');
         } catch (err) {
@@ -74,13 +91,16 @@ function AdminUsers() {
     const handleUpdateUser = async (e) => {
         e.preventDefault();
         try {
-            await API.admin.updateUser(selectedUser.uId, {
+            const token = localStorage.getItem('accessToken');
+            await api.put(`/api/admin/users/${selectedUser.uId}`, {
                 uName: formData.uName,
                 uRole: formData.uRole
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
             setShowEditModal(false);
             setSelectedUser(null);
-            setFormData({ uName: '', uEmail: '', uPassword: '', uRole: 'ADMIN' });
+            setFormData({ uName: '', uEmail: '', uPassword: '', uRole: 'USER' });
             fetchUsers(page);
             alert('사용자 정보가 성공적으로 수정되었습니다.');
         } catch (err) {
@@ -92,7 +112,10 @@ function AdminUsers() {
         if (!window.confirm('정말로 이 사용자를 삭제하시겠습니까?')) return;
 
         try {
-            await API.admin.deleteUser(uId);
+            const token = localStorage.getItem('accessToken');
+            await api.delete(`/api/admin/users/${uId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             fetchUsers(page);
             alert('사용자가 성공적으로 삭제되었습니다.');
         } catch (err) {
@@ -153,36 +176,46 @@ function AdminUsers() {
                 새 사용자 추가
             </button>
 
-            <table className="user-table">
-                <thead>
-                <tr>
-                    <th>UID</th>
-                    <th>이름</th>
-                    <th>이메일</th>
-                    <th>권한</th>
-                    <th>관리</th>
-                </tr>
-                </thead>
-                <tbody>
-                {users.map((user) => (
-                    <tr key={user.uId}>
-                        <td>{user.uId}</td>
-                        <td>{user.uName}</td>
-                        <td>{user.uEmail}</td>
-                        <td>{user.uRole}</td>
-                        <td>
-                            <button onClick={() => openEditModal(user)}>수정</button>
-                            <button onClick={() => handleDeleteUser(user.uId)}>삭제</button>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
-            <div className="pagination">
-                <button onClick={() => setPage(page - 1)} disabled={page === 0}>이전</button>
-                <span>{page + 1} / {totalPages}</span>
-                <button onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1}>다음</button>
-            </div>
+            {loading ? (
+                <p>로딩 중...</p>
+            ) : error ? (
+                <div className="error-message">
+                    {error}
+                </div>
+            ) : (
+                <>
+                    <table className="user-table">
+                        <thead>
+                        <tr>
+                            <th>UID</th>
+                            <th>이름</th>
+                            <th>이메일</th>
+                            <th>권한</th>
+                            <th>관리</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {users.map((user) => (
+                            <tr key={user.uId}>
+                                <td>{user.uId}</td>
+                                <td>{user.uName}</td>
+                                <td>{user.uEmail}</td>
+                                <td>{user.uRole}</td>
+                                <td>
+                                    <button onClick={() => openEditModal(user)}>수정</button>
+                                    <button onClick={() => handleDeleteUser(user.uId)}>삭제</button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                    <div className="pagination">
+                        <button onClick={() => setPage(page - 1)} disabled={page === 0}>이전</button>
+                        <span>{page + 1} / {totalPages}</span>
+                        <button onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1}>다음</button>
+                    </div>
+                </>
+            )}
 
             {/* 생성 모달 */}
             {showCreateModal && (

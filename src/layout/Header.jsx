@@ -7,28 +7,11 @@ import { logout } from '../store/authSlice';
 function Header() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false); // 관리자 여부
-    const user = useSelector(state => state.auth);
-
-    useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            setIsLoggedIn(true);
-            setIsAdmin(user?.user?.role === "ADMIN");
-        } else {
-            setIsLoggedIn(false);
-            setIsAdmin(false);
-        }
-    }, [user]);
+    const { isLoggedIn, user } = useSelector(state => state.auth);
+    const isAdmin = user?.uRole === "ADMIN";
 
     const handleLogout = () => {
-        // Redux store 업데이트
         dispatch(logout());
-        // 로컬 상태 업데이트
-        setIsLoggedIn(false);
-        setIsAdmin(false);
-        // 페이지 이동
         navigate("/");
     };
 

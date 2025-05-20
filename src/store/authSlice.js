@@ -61,6 +61,8 @@ const authSlice = createSlice({
             state.isLoggedIn = false;
             localStorage.removeItem('userState');
             localStorage.removeItem('accessToken');
+            localStorage.removeItem('tempRegisterName');
+            localStorage.removeItem('tempRegisterPassword');
             delete axios.defaults.headers.common['Authorization'];
         },
         updateUserInfo: (state, action) => {

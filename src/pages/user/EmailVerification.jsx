@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API } from '../../api/api';
-// import '../../style/user/EmailVerification.css';
+import "../../style/user/Register.css";
 
 const EmailVerification = () => {
     const [verificationCode, setVerificationCode] = useState('');
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [isResending, setIsResending] = useState(false);
+    const [isVerified, setIsVerified] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -20,14 +21,22 @@ const EmailVerification = () => {
         }
     }, [location]);
 
-    const handleSubmit = async (e) => {
+    const handleVerifyCode = async (e) => {
         e.preventDefault();
         setError('');
 
         try {
             // 1. 이메일 인증 코드 확인
             await API.auth.verifyCode(email, verificationCode);
-            
+            setIsVerified(true);
+        } catch (error) {
+            console.error('이메일 인증 실패:', error);
+            setError(error.response?.data?.message || '이메일 인증에 실패했습니다.');
+        }
+    };
+
+    const handleCompleteRegistration = async () => {
+        try {
             // 2. 회원가입 완료 요청 (모든 필요한 정보 전달)
             await API.auth.requestRegisterComplete({
                 uName: localStorage.getItem('tempRegisterName'),
@@ -43,8 +52,8 @@ const EmailVerification = () => {
             alert('이메일 인증이 완료되었습니다. 로그인해주세요.');
             navigate('/login');
         } catch (error) {
-            console.error('이메일 인증 실패:', error);
-            setError(error.response?.data?.message || '이메일 인증에 실패했습니다.');
+            console.error('회원가입 완료 실패:', error);
+            setError(error.response?.data?.message || '회원가입 완료에 실패했습니다.');
         }
     };
 
@@ -66,54 +75,44 @@ const EmailVerification = () => {
     };
 
     return (
-        <div className="container mt-5">
-            <div className="row justify-content-center">
-                <div className="col-md-6">
-                    <div className="card">
-                        <div className="card-body">
-                            <h2 className="text-center mb-4">이메일 인증</h2>
-                            <p className="text-center mb-4">
-                                {email}로 전송된 인증 코드를 입력해주세요.
-                            </p>
-                            {error && (
-                                <div className="alert alert-danger" role="alert">
-                                    {error}
-                                </div>
-                            )}
-                            <form onSubmit={handleSubmit}>
-                                <div className="mb-3">
-                                    <label htmlFor="verificationCode" className="form-label">
-                                        인증 코드
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="verificationCode"
-                                        value={verificationCode}
-                                        onChange={(e) => setVerificationCode(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="d-grid gap-2">
-                                    <button type="submit" className="btn btn-primary">
-                                        인증하기
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        onClick={handleResendCode}
-                                        disabled={isResending}
-                                    >
-                                        {isResending ? '전송 중...' : '인증 코드 재전송'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="register-page">
+            <h2 className="logo" onClick={() => navigate("/")}>STUDYLOG</h2>
+            <form onSubmit={handleVerifyCode} className="register-form">
+                <h3>이메일 인증</h3>
+                <p className="email-info">{email}로 전송된 인증 코드를 입력해주세요.</p>
+                
+                <label htmlFor="verificationCode">인증 코드</label>
+                <input
+                    type="text"
+                    id="verificationCode"
+                    name="verificationCode"
+                    placeholder="인증 코드 입력"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    required
+                />
+
+                {error && <p className="error-message">{error}</p>}
+                
+                {!isVerified ? (
+                    <>
+                        <button type="submit">인증 코드 확인</button>
+                        <button type="button" onClick={handleResendCode} className="resend-button">
+                            인증 코드 재전송
+                        </button>
+                    </>
+                ) : (
+                    <button type="button" onClick={handleCompleteRegistration} className="complete-button">
+                        회원가입 완료
+                    </button>
+                )}
+                
+                <p onClick={() => navigate("/register")} className="back-link">
+                    회원가입으로 돌아가기
+                </p>
+            </form>
         </div>
     );
-};
+}
 
 export default EmailVerification; 

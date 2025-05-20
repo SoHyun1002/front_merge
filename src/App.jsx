@@ -26,6 +26,7 @@ import StudyDetail from './pages/group/StudyDetail';
 import RestoreAccount from './pages/user/RestoreAccount';
 import AdminPage from './pages/admin/AdminPage';
 import GroupMember from "./pages/group/GroupMember.jsx";
+import AuthFormWrapper from "./pages/user/AuthFormWrapper.jsx";
 
 function App() {
     const location = useLocation();
@@ -59,30 +60,45 @@ function App() {
         <div>
             <ScrollTop />
             {!hideLayout && <Header />}
-            <div className="wrap">
+            {hideLayout ? (
                 <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/mypage" element={<MyPage />} />
-                    <Route path="/board" element={<BoardPage />} />
-                    <Route path="/posts/:id" element={<PostDetail />} />
-                    <Route path="/posts/create" element={<PostCreate />} />
-                    <Route path="/post/edit/:postId" element={<PostEdit />} />
-                    <Route path="/boards/manage" element={<BoardManagement />} />
-                    <Route path="/schedule" element={<SchedulePage />} />
-                    <Route path="/email-verification" element={<EmailVerification />} />
-                    <Route path="/mypage/edit" element={<EditProfile />} />
-                    <Route path="/openai-test" element={<OpenAIPage />} />
-                    <Route path="/study/search" element={<StudySearch />} />
-                    <Route path="/study/create" element={<StudyCreate />} />
-                    <Route path="/group/:id" element={<GroupMember/>} />
-                    <Route path="/study/:id" element={<StudyDetail />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+                    <Route path="/login" element={<AuthFormWrapper />} />
+                    <Route path="/register" element={
+                        <AuthFormWrapper>
+                            <Register />
+                        </AuthFormWrapper>
+                    } />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/restore-account" element={<RestoreAccount />} />
+                    <Route path="/email-verification" element={
+                            <EmailVerification />
+                    } />
+                    <Route path="/email-verification/*" element={
+                            <EmailVerification />
+                    } />
                 </Routes>
-            </div>
+            ) : (
+                <div className="wrap">
+                    <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/mypage" element={<MyPage />} />
+                        <Route path="/board" element={<BoardPage />} />
+                        <Route path="/posts/:id" element={<PostDetail />} />
+                        <Route path="/posts/create" element={<PostCreate />} />
+                        <Route path="/post/edit/:postId" element={<PostEdit />} />
+                        <Route path="/boards/manage" element={<BoardManagement />} />
+                        <Route path="/schedule" element={<SchedulePage />} />
+                        <Route path="/mypage/edit" element={<EditProfile />} />
+                        <Route path="/openai-test" element={<OpenAIPage />} />
+                        <Route path="/study/search" element={<StudySearch />} />
+                        <Route path="/study/create" element={<StudyCreate />} />
+                        <Route path="/group/:id" element={<GroupMember/>} />
+                        <Route path="/study/:id" element={<StudyDetail />} />
+                        <Route path="/admin" element={<AdminPage />} />
+                        <Route path="/login" element={<Login />} />
+                    </Routes>
+                </div>
+            )}
             {!hideLayout && <Footer />}
         </div>
     )

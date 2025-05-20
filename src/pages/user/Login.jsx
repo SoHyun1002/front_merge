@@ -1,9 +1,11 @@
+// pages/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../store/authSlice';
-import "../../style/user/Login.css";
+import ResetPassword from './ResetPassword';
 import { API } from "../../api/api";
+import "../../style/user/Login.css";
 
 function Login() {
     const navigate = useNavigate();
@@ -12,6 +14,8 @@ function Login() {
         uEmail: '',
         uPassword: ''
     });
+    const [error, setError] = useState('');
+    const [showResetModal, setShowResetModal] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -32,74 +36,97 @@ function Login() {
             
             console.log('로그인 응답:', response.data);
             
-            // 계정이 비활성화된 경우
-            if (response.data.deletedAt) {
-                alert('비활성화된 계정입니다. 계정을 복구하시겠습니까?');
-                navigate('/restore-account', { state: { uEmail: formData.uEmail } });
-                return;
-            }
-            
-            // 로그인 성공 시에만 사용자 정보 저장
-            if (response.data.status === 200) {
+            // 로그인 성공 시 사용자 정보 저장
+            if (response.data.accessToken) {
                 const userData = {
                     uName: response.data.uName,
                     uEmail: response.data.uEmail,
                     uRole: response.data.uRole,
                     accessToken: response.data.accessToken,
-                    deletedAt: null
+                    deletedAt: response.data.deletedAt
                 };
                 console.log('저장할 사용자 정보:', userData);
                 
                 dispatch(loginSuccess(userData));
                 navigate('/');
             } else {
-                alert(response.data.error || "로그인에 실패했습니다.");
+                setError("로그인에 실패했습니다.");
             }
         } catch (err) {
+            console.error('로그인 에러:', err);
             if (err.response) {
-                alert(err.response.data.error);
+                if (err.response.status === 401) {
+                    setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+                } else if (err.response.status === 403) {
+                    setError("비활성화된 계정입니다.");
+                    navigate('/restore-account', { state: { uEmail: formData.uEmail } });
+                } else {
+                    setError(err.response.data.message || "로그인 중 오류가 발생했습니다.");
+                }
             } else {
-                alert("로그인 중 오류가 발생했습니다.");
+                setError("서버에 연결할 수 없습니다.");
             }
         }
     };
 
+    
     return (
-        <div className="login-page">
-            <h2 className="logo" onClick={() => navigate("/")}>STUDYLOG</h2>
-            <div className="login-form">
-                <form onSubmit={handleSubmit}>
-                    <h3>로그인</h3>
-                    <div>
-                        <label htmlFor="uEmail">이메일</label>
-                        <input
-                            type="email"
-                            id="uEmail"
-                            name="uEmail"
-                            value={formData.uEmail}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="uPassword">비밀번호</label>
-                        <input
-                            type="password"
-                            id="uPassword"
-                            name="uPassword"
-                            value={formData.uPassword}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <button type="submit">로그인</button>
-                    <div className="links">
-                        <Link to="/register">회원가입</Link>
-                        <Link to="/reset-password">비밀번호 찾기</Link>
-                    </div>
-                </form>
+        <>
+             <div className="login-header">
+                <h1 className="tone1">StudyLog</h1>
+                <p className="tone1">계정을 등록해주세요</p>
             </div>
-        </div>
+
+            <form className="login-form" onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label>이메일</label>
+                    <div className="input-icon">
+                        <i className="fas fa-envelope"></i>
+                        <input
+                         type="email"
+                         name="uEmail"
+                         style={{border:"none"}}
+                         placeholder="이메일을 입력해주세요"
+                         value={formData.uEmail}
+                         onChange={handleChange}
+                        required
+                        />
+                   </div>
+                 </div>
+
+                <div className="form-group">
+                    <label>비밀번호</label>
+                    <div className="input-icon">
+                        <i className="fas fa-lock"></i>
+                         <input
+                        type="password"
+                        name="uPassword"
+                        style={{border:"none"}}
+                        placeholder="Enter your password"
+                        value={formData.uPassword}
+                        onChange={handleChange}
+                        required
+                         />
+                    </div>
+                </div>
+
+                <div className="form-options">
+                    <span onClick={() => setShowResetModal(true)} className="link">비밀번호 찾기
+                    </span>
+                </div>
+
+                {error && <p className="error-message">{error}</p>}
+
+                <button type="submit" className="submit-btn">로그인</button>
+            </form>
+
+            {showResetModal && (
+                <ResetPassword onClose={() => setShowResetModal(false)} />
+            )}
+
+
+        </>
+
     );
 }
 

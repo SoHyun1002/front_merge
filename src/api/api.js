@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// API 클라이언트
+// API 클라이언트 생성
 const apiClient = axios.create({
   baseURL: 'http://localhost:9090/api',
   withCredentials: true,
@@ -81,7 +81,10 @@ setupInterceptors(apiClient);
 export const API = {
   // 인증 관련 API
   auth: {
-    login: (credentials) => apiClient.post('/auth/login', credentials),
+    login: (credentials) => apiClient.post('/auth/login', {
+      uEmail: credentials.uEmail,
+      uPassword: credentials.uPassword
+    }),
     logout: () => apiClient.post('/auth/logout'),
     refresh: () => apiClient.post('/auth/refresh'),
     requestRegister: (data) => apiClient.post('/auth/register/request', data),
@@ -129,4 +132,4 @@ export const API = {
   }
 };
 
-export default API; 
+export default API;

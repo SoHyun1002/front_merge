@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { logout } from '../../store/authSlice';
 import { API } from '../../api/api';
 import '../../style/user/DeleteAccountSection.css';
@@ -9,12 +9,17 @@ function DeleteAccountSection() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
     const user = useSelector(state => state.auth.user);
 
     const handleDelete = async (e) => {
         e.preventDefault();
+        setError('');
+        setIsDeleting(true);
         
         if (!window.confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            setIsDeleting(false);
             return;
         }
 
@@ -38,24 +43,28 @@ function DeleteAccountSection() {
             } else {
                 alert('비밀번호가 일치하지 않습니다.');
             }
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     return (
-        <div className="delete-account-section">
+        <div className="account-danger-zone">
             <h3>회원 탈퇴</h3>
-            <p>계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.</p>
-            <form onSubmit={handleDelete}>
-                <div className="form-group">
-                    <label>비밀번호 확인</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
+            <form className="delete-form" onSubmit={handleDelete}>
+                <p>비밀번호를 입력하여 탈퇴를 확인하세요.</p>
+                <p className="delete-notice">* 회원 탈퇴 신청 후 30일 동안 계정이 보관되며, 이 기간 동안 로그인하면 탈퇴를 취소할 수 있습니다.</p>
+                <input 
+                    type="password" 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    placeholder="비밀번호를 입력하세요"
+                    required 
+                />
+                {error && <div className="error-message">{error}</div>}
+                <div className="button-group">
+                    <button type="submit" className="delete-confirm-button">탈퇴하기</button>
                 </div>
-                <button type="submit" className="delete-button">계정 삭제</button>
             </form>
         </div>
     );

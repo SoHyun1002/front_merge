@@ -1,15 +1,18 @@
+// components/ResetPasswordModal.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import "../../style/user/Login.css";
+import '../../style/user/Modal1.css';
 import { API } from "../../api/api";
 
-const ResetPassword = () => {
+const ResetPassword = ({ onClose }) => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1); // 1: 이메일 입력, 2: 인증코드 입력, 3: 새 비밀번호 입력
     const [uEmail, setUEmail] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleSendVerificationCode = async (e) => {
         e.preventDefault();
@@ -58,75 +61,81 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="login-page">
-            <h2 className="logo" onClick={() => navigate("/")}>STUDYLOG</h2>
-            <div className="login-form">
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <button className="modal-close" onClick={onClose}>×</button>
+
                 {step === 1 && (
-                    <form onSubmit={handleSendVerificationCode}>
-                        <h3>비밀번호 재설정</h3>
-                        <div>
-                            <label htmlFor="uEmail">이메일</label>
-                            <input
-                                type="email"
-                                id="uEmail"
-                                value={uEmail}
-                                onChange={(e) => setUEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <button type="submit">인증 코드 전송</button>
-                        <button type="button" onClick={() => navigate('/login')}>로그인으로 돌아가기</button>
-                    </form>
+                    <>
+                        <h3>이메일 인증</h3>
+                        <input 
+                            type="email" 
+                            placeholder="이메일 입력" 
+                            value={uEmail} 
+                            onChange={(e) => setUEmail(e.target.value)}
+                            className="modal-input"
+                        />
+                        <button 
+                            onClick={handleSendVerificationCode} 
+                            disabled={loading}
+                            className="submit-btn"
+                        >
+                            {loading ? '처리 중...' : '인증 코드 전송'}
+                        </button>
+                    </>
                 )}
 
                 {step === 2 && (
-                    <form onSubmit={handleVerifyCode}>
+                    <>
                         <h3>인증 코드 확인</h3>
-                        <div>
-                            <label htmlFor="verificationCode">인증 코드</label>
-                            <input
-                                type="text"
-                                id="verificationCode"
-                                value={verificationCode}
-                                onChange={(e) => setVerificationCode(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <button type="submit">인증 코드 확인</button>
-                        <button type="button" onClick={() => setStep(1)}>이전으로</button>
-                    </form>
+                        <input 
+                            type="text" 
+                            placeholder="인증 코드" 
+                            value={verificationCode} 
+                            onChange={(e) => setVerificationCode(e.target.value)}
+                            className="modal-input"
+                        />
+                        <button 
+                            onClick={handleVerifyCode} 
+                            disabled={loading}
+                            className="submit-btn"
+                        >
+                            {loading ? '처리 중...' : '확인'}
+                        </button>
+                    </>
                 )}
 
                 {step === 3 && (
-                    <form onSubmit={handleResetPassword}>
-                        <h3>새 비밀번호 설정</h3>
-                        <div>
-                            <label htmlFor="newPassword">새 비밀번호</label>
-                            <input
-                                type="password"
-                                id="newPassword"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="confirmPassword">비밀번호 확인</label>
-                            <input
-                                type="password"
-                                id="confirmPassword"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                        <button type="submit">비밀번호 재설정</button>
-                        <button type="button" onClick={() => setStep(2)}>이전으로</button>
-                    </form>
+                    <>
+                        <h3>새 비밀번호 입력</h3>
+                        <input 
+                            type="password" 
+                            placeholder="새 비밀번호" 
+                            value={newPassword} 
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="modal-input"
+                        />
+                        <input 
+                            type="password" 
+                            placeholder="비밀번호 확인" 
+                            value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="modal-input"
+                        />
+                        <button 
+                            onClick={handleResetPassword} 
+                            disabled={loading}
+                            className="submit-btn"
+                        >
+                            {loading ? '처리 중...' : '비밀번호 변경'}
+                        </button>
+                    </>
                 )}
+
+                {error && <p className="error-message">{error}</p>}
             </div>
         </div>
     );
-};
+}
 
-export default ResetPassword; 
+export default ResetPassword;

@@ -1,26 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import "../../style/user/MyPage.css";
-import "../../style/user/modal.css";
-import "../../style/user/deleteAccount.css";
+import { useDispatch, useSelector } from 'react-redux';
+import { updateUserInfo } from '../../store/authSlice';
+import { getManagedGroups, getJoinedGroups } from '../../api/GroupServiceApi';
 import MyInfoSection from './MyInfoSection';
-import DeleteAccountSection from './DeleteAccountSection';
+import StudyGroupSection from '../group/StudyGroupSection';
 import MyPostsSection from '../board/MyPostsSection';
+import DeleteAccountSection from './DeleteAccountSection';
+import { API } from '../../api/api';
+import '../../style/user/MyPage.css';
 
 const MyPage = () => {
     const navigate = useNavigate();
-    const user = useSelector(state => state.auth.user);
+    const dispatch = useDispatch();
     const [selectedMenu, setSelectedMenu] = useState('info');
+    const [managedGroups, setManagedGroups] = useState([]);
+    const [joinedGroups, setJoinedGroups] = useState([]);
+    const [error, setError] = useState('');
+    const user = useSelector(state => state.auth.user);
 
-    if (!user) {
-        return (
-            <div className="mypage-container">
-                <p>로그인이 필요합니다.</p>
-                <button onClick={() => navigate('/login')}>로그인</button>
-            </div>
-        );
-    }
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await API.user.getProfile();
+                const userData = {
+                    uName: response.data.uName,
+                    uEmail: response.data.uEmail,
+                    uRole: response.data.uRole,
+                    deletedAt: response.data.deletedAt
+                };
+                
+                dispatch(updateUserInfo(userData));
+                await fetchStudyGroups(userData.uEmail);
+            } catch (error) {
+                console.error('사용자 정보 조회 실패:', error);
+                if (error.response?.status === 401) {
+                    alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
+                    navigate("/login");
+                }
+            }
+        };
+
+        fetchUserData();
+    }, [dispatch, navigate]);
+
+    const fetchStudyGroups = async (email) => {
+        try {
+            const [managedRes, joinedRes] = await Promise.all([
+                getManagedGroups(email, 0, 10),
+                getJoinedGroups(email, 0, 10)
+            ]);
+
+            setManagedGroups(managedRes.data.content);
+            setJoinedGroups(joinedRes.data.content);
+        } catch (error) {
+            console.error('스터디 그룹 요청 실패:', error);
+            setError('스터디 그룹 정보를 불러오는데 실패했습니다.');
+        }
+    };
+
+    if (!user) return <div>로딩 중...</div>;
 
     return (
         <div className="mypage-wrapper">
@@ -28,13 +67,20 @@ const MyPage = () => {
                 <h2>마이페이지</h2>
                 <ul>
                     <li className={selectedMenu === 'info' ? 'active' : ''} onClick={() => setSelectedMenu('info')}>내 정보</li>
+                    <li className={selectedMenu === 'study' ? 'active' : ''} onClick={() => setSelectedMenu('study')}>스터디 그룹</li>
                     <li className={selectedMenu === 'post' ? 'active' : ''} onClick={() => setSelectedMenu('post')}>내 게시글</li>
                     <li className={selectedMenu === 'delete' ? 'active' : ''} onClick={() => setSelectedMenu('delete')}>회원 탈퇴</li>
                 </ul>
             </nav>
             <main className="main-content">
                 {selectedMenu === 'info' && <MyInfoSection />}
-                {selectedMenu === 'post' && <MyPostsSection uEmail={user.uEmail} />}
+                {selectedMenu === 'study' && (
+                    <StudyGroupSection
+                        managedGroups={managedGroups}
+                        joinedGroups={joinedGroups}
+                    />
+                )}
+                {selectedMenu === 'post' && <MyPostsSection email={user.uEmail} />}
                 {selectedMenu === 'delete' && <DeleteAccountSection />}
             </main>
         </div>

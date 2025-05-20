@@ -61,7 +61,10 @@ const RestoreAccount = () => {
                                 readOnly
                             />
                         </div>
-                        <button type="submit">인증 코드 전송</button>
+                        {error && <p className="error-message">{error}</p>}
+                        <button type="submit" disabled={loading}>
+                            {loading ? '처리 중...' : '인증 코드 전송'}
+                        </button>
                     </form>
                 ) : (
                     <form onSubmit={handleVerifyAndRestore}>
@@ -75,7 +78,10 @@ const RestoreAccount = () => {
                                 required
                             />
                         </div>
-                        <button type="submit">계정 복구하기</button>
+                        {error && <p className="error-message">{error}</p>}
+                        <button type="submit" disabled={loading}>
+                            {loading ? '처리 중...' : '계정 복구하기'}
+                        </button>
                         <button type="button" onClick={() => setStep(1)} className="back-button">
                             이전으로
                         </button>
